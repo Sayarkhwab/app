@@ -2,6 +2,7 @@ package com.akash.clipboarddict
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.RectShape
@@ -55,15 +56,17 @@ class FloatingPromptView(private val context: Context) {
 
         val promptLayout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            // Programmatic background instead of resource
+            // Programmatic background with ShapeDrawable
             val shape = ShapeDrawable(RectShape()).apply {
-                paint.color = Color.parseColor("#F0FFFFFF") // Semi-transparent white
-                setStroke(1f, Color.parseColor("#FFAAAAAA")) // Gray border
-                intrinsicHeight = 16 // Approximate corner radius
+                paint.color = Color.parseColor("#F0FFFFFF") // Semi-transparent white fill
+                paint.style = Paint.Style.FILL_AND_STROKE
+                paint.strokeWidth = 1f // 1dp border
+                paint.setColor(Color.parseColor("#FFAAAAAA")) // Gray border
+                intrinsicHeight = 16 // Approximate corner radius effect
                 intrinsicWidth = 16
             }
             background = shape
-            setPadding(24)
+            setPadding(24, 24, 24, 24) // Explicit padding for all sides
             elevation = 10f
             setOnTouchListener(touchListener)
         }
