@@ -1,7 +1,10 @@
 package com.akash.clipboarddict
+
 import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.drawable.ShapeDrawable
+import android.graphics.drawable.shapes.RectShape
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -16,7 +19,6 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
-import com.akash.clipboarddict.R // Explicit import
 
 class FloatingPromptView(private val context: Context) {
 
@@ -53,7 +55,14 @@ class FloatingPromptView(private val context: Context) {
 
         val promptLayout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundResource(R.drawable.rounded_background)
+            // Programmatic background instead of resource
+            val shape = ShapeDrawable(RectShape()).apply {
+                paint.color = Color.parseColor("#F0FFFFFF") // Semi-transparent white
+                setStroke(1f, Color.parseColor("#FFAAAAAA")) // Gray border
+                intrinsicHeight = 16 // Approximate corner radius
+                intrinsicWidth = 16
+            }
+            background = shape
             setPadding(24)
             elevation = 10f
             setOnTouchListener(touchListener)
