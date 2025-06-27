@@ -1,5 +1,4 @@
 package com.akash.clipboarddict
-
 import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
