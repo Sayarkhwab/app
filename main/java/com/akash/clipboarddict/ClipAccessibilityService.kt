@@ -3,8 +3,9 @@ package com.akash.clipboarddict
 import android.accessibilityservice.AccessibilityService
 import android.content.ClipboardManager
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.view.accessibility.AccessibilityEvent
-import android.widget.Toast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,26 +25,27 @@ class ClipAccessibilityService : AccessibilityService() {
 
     private lateinit var clipboard: ClipboardManager
     private val TAG = "ClipAccessibilityService"
+    private val handler = Handler(Looper.getMainLooper())
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         logDebug("Accessibility service connected")
-        Toast.makeText(this, "Accessibility service enabled", Toast.LENGTH_SHORT).show()
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event?.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED || 
-            event?.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED) {
-            val clipText = clipboard.primaryClip?.getItemAt(0)?.text?.toString()?.trim()
-            if (!clipText.isNullOrBlank()) {
-                logDebug("Copy or selection detected: $clipText")
-                Toast.makeText(this, "Copied: $clipText", Toast.LENGTH_SHORT).show()
-                fetchAndShow(clipText)
-            } else {
-                logDebug("Copy or selection detected but clipboard is empty")
-                Toast.makeText(this, "Clipboard is empty", Toast.LENGTH_SHORT).show()
-            }
+        if (event?.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+            logDebug("Event detected: type=${event.eventType}, package=${event.packageName}")
+            // Delay clipboard check to ensure it's populated
+            handler.postDelayed({
+                val clipText = clipboard.primaryClip?.getItemAt(0)?.text?.toString()?.trim()
+                if (!clipText.isNullOrBlank()) {
+                    logDebug("Copy detected: $clipText")
+                    fetchAndShow(clipText)
+                } else {
+                    logDebug("Clipboard is empty after copy event")
+                }
+            }, 500) // 500ms delay
         }
     }
 
@@ -58,16 +60,13 @@ class ClipAccessibilityService : AccessibilityService() {
                 if (!response.isNullOrBlank()) {
                     withContext(Dispatchers.Main) {
                         logDebug("Showing prompt for: $response")
-                        Toast.makeText(this@ClipAccessibilityService, "Translation: $response", Toast.LENGTH_SHORT).show()
                         FloatingPromptView(this@ClipAccessibilityService).show(response)
                     }
                 } else {
                     logDebug("Empty or null API response for word: $word")
-                    Toast.makeText(this@ClipAccessibilityService, "No translation received", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 logDebug("API error for word '$word': ${e.message}")
-                Toast.makeText(this@ClipAccessibilityService, "API error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -129,7 +128,7 @@ class ClipAccessibilityService : AccessibilityService() {
                 fos.write(logMessage.toByteArray())
             }
         } catch (e: Exception) {
-            Toast.makeText(this, "Failed to write log to file", Toast.LENGTH_SHORT).show()
+            // Silent failure to avoid user disruption
         }
     }
 }
