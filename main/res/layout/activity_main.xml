@@ -24,6 +24,12 @@
         android:layout_height="wrap_content"
         android:text="Test Clipboard" />
 
+    <Button
+        android:id="@+id/enable_accessibility_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Enable Accessibility Service" />
+
     <TextView
         android:id="@+id/debug_text_view"
         android:layout_width="match_parent"
