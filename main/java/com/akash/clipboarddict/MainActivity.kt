@@ -1,17 +1,14 @@
 package com.akash.clipboarddict
 
-import android.app.ActivityManager
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AlertDialog
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -19,130 +16,71 @@ import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var statusText: TextView
     private lateinit var debugTextView: TextView
-    private val debugLogs = StringBuilder()
-    private val OVERLAY_PERMISSION_REQUEST_CODE = 101
+    private var isServiceActive = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        debugTextView = findViewById(
-R.id.debug_text_view)
-        updateDebugLog("MainActivity started")
+        statusText = findViewById(R.id.status_text)
+        debugTextView = findViewById(R.id.debug_text_view)
 
-        // Check overlay permission
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            showOverlayPermissionDialog()
-        } else {
-            startClipboardService()
-        }
+        // Start clipboard service
+        val serviceIntent = Intent(this, ClipboardService::class.java)
+        startForegroundService(serviceIntent)
+        updateStatusText()
+        logDebug("MainActivity started")
 
-        findViewById<Button>(R.id.toggle_service_button)?.setOnClickListener {
-            if (isServiceRunning(ClipboardService::class.java)) {
-                stopService(Intent(this, ClipboardService::class.java))
-                updateDebugLog("Clipboard monitoring stopped")
-                Toast.makeText(this, "Clipboard monitoring stopped", Toast.LENGTH_SHORT).show()
-            } else {
-                startClipboardService()
-                updateDebugLog("Clipboard monitoring started")
-                Toast.makeText(this, "Clipboard monitoring started", Toast.LENGTH_SHORT).show()
+        // Toggle service button
+        findViewById<Button>(R.id.toggle_service_button).setOnClickListener {
+            isServiceActive = !isServiceActive
+            val intent = Intent(this, ClipboardService::class.java).apply {
+                putExtra("TOGGLE_ACTIVE", isServiceActive)
             }
-            updateUI()
+            startForegroundService(intent)
+            updateStatusText()
+            logDebug("Service toggled to: $isServiceActive")
+            Toast.makeText(this, "Clipboard monitoring ${if (isServiceActive) "started" else "stopped"}", Toast.LENGTH_SHORT).show()
         }
 
-        findViewById<Button>(R.id.copy_test_button)?.setOnClickListener {
-            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        // Test clipboard button
+        findViewById<Button>(R.id.copy_test_button).setOnClickListener {
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             val clipText = clipboard.primaryClip?.getItemAt(0)?.text?.toString()?.trim()
             if (!clipText.isNullOrBlank()) {
-                updateDebugLog("Clipboard text: $clipText")
+                logDebug("Test button clicked, clipboard text: $clipText")
                 Toast.makeText(this, "Clipboard: $clipText", Toast.LENGTH_SHORT).show()
                 val intent = Intent(this, ClipboardService::class.java).apply {
                     putExtra("CLIP_TEXT", clipText)
                 }
-                startService(intent)
+                startForegroundService(intent)
             } else {
-                updateDebugLog("Clipboard is empty")
+                logDebug("Test button clicked, clipboard is empty")
                 Toast.makeText(this, "Clipboard is empty", Toast.LENGTH_SHORT).show()
             }
         }
 
-        updateUI()
-    }
-
-    private fun showOverlayPermissionDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("Permission Required")
-            .setMessage("This app needs 'Draw over other apps' permission to display translations. Please enable it in settings.")
-            .setPositiveButton("Go to Settings") { _, _ ->
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:$packageName")
-                )
-                startActivityForResult(intent, OVERLAY_PERMISSION_REQUEST_CODE)
-            }
-            .setNegativeButton("Cancel") { _, _ ->
-                updateDebugLog("Overlay permission denied")
-                Toast.makeText(this, "Permission denied, app functionality limited", Toast.LENGTH_LONG).show()
-                finish()
-            }
-            .setCancelable(false)
-            .show()
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == OVERLAY_PERMISSION_REQUEST_CODE) {
-            if (Settings.canDrawOverlays(this)) {
-                updateDebugLog("Overlay permission granted")
-                Toast.makeText(this, "Overlay permission granted", Toast.LENGTH_SHORT).show()
-                startClipboardService()
-            } else {
-                updateDebugLog("Overlay permission denied")
-                Toast.makeText(this, "Overlay permission denied, cannot show prompts", Toast.LENGTH_LONG).show()
-                showOverlayPermissionDialog()
-            }
+        // Accessibility permission button
+        findViewById<Button>(R.id.enable_accessibility_button)?.setOnClickListener {
+            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            startActivity(intent)
+            Toast.makeText(this, "Please enable Clipboard Dictionary accessibility service", Toast.LENGTH_LONG).show()
+            logDebug("Accessibility settings opened")
         }
     }
 
-    private fun startClipboardService() {
-        if (!isServiceRunning(ClipboardService::class.java)) {
-            val serviceIntent = Intent(this, ClipboardService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent)
-            } else {
-                startService(serviceIntent)
-            }
-            updateDebugLog("ClipboardService started")
-        } else {
-            updateDebugLog("ClipboardService already running")
-        }
+    private fun updateStatusText() {
+        statusText.text = "Clipboard Monitoring: ${if (isServiceActive) "ON" else "OFF"}"
+        findViewById<Button>(R.id.toggle_service_button).text = if (isServiceActive) "Stop Monitoring" else "Start Monitoring"
     }
 
-    private fun updateUI() {
-        val statusText = findViewById<TextView>(R.id.status_text)
-        val toggleButton = findViewById<Button>(R.id.toggle_service_button)
-        if (isServiceRunning(ClipboardService::class.java)) {
-            statusText?.text = "Clipboard Monitoring: ON"
-            toggleButton?.text = "Stop Monitoring"
-        } else {
-            statusText?.text = "Clipboard Monitoring: OFF"
-            toggleButton?.text = "Start Monitoring"
-        }
-        debugTextView.text = debugLogs.toString()
-    }
-
-    private fun updateDebugLog(message: String) {
-        val timestamp = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-        debugLogs.append("[$timestamp] $message\n")
-        debugTextView.text = debugLogs.toString()
-        writeLogToFile(message)
-    }
-
-    private fun writeLogToFile(message: String) {
+    private fun logDebug(message: String) {
+        val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+        val logMessage = "[$timestamp] $message\n"
+        debugTextView.append(logMessage)
         try {
-            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-            val logMessage = "[$timestamp] $message\n"
             val file = File(filesDir, "debug_log.txt")
             FileOutputStream(file, true).use { fos ->
                 fos.write(logMessage.toByteArray())
@@ -150,16 +88,5 @@ R.id.debug_text_view)
         } catch (e: Exception) {
             Toast.makeText(this, "Failed to write log to file", Toast.LENGTH_SHORT).show()
         }
-    }
-
-    private fun isServiceRunning(serviceClass: Class<*>): Boolean {
-        val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        @Suppress("DEPRECATION")
-        for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
-            if (serviceClass.name == service.service.className) {
-                return true
-            }
-        }
-        return false
     }
 }
