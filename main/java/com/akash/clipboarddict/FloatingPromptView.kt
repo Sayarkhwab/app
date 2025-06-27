@@ -7,16 +7,17 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import android.widget.Toast
 import android.view.*
-import android.widget.TextView
-import android.widget.LinearLayout
 import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
+import com.akash.clipboarddict.R // Explicit import
 
 class FloatingPromptView(private val context: Context) {
 
