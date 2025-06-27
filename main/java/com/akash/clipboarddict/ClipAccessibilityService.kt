@@ -32,15 +32,15 @@ class ClipAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event?.eventType == AccessibilityEvent.TYPE_VIEW_CONTEXT_CLICKED) {
-            // Detect copy action (works for "Copy" menu selection)
+        if (event?.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED || 
+            event?.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED) {
             val clipText = clipboard.primaryClip?.getItemAt(0)?.text?.toString()?.trim()
             if (!clipText.isNullOrBlank()) {
-                logDebug("Copy detected: $clipText")
+                logDebug("Copy or selection detected: $clipText")
                 Toast.makeText(this, "Copied: $clipText", Toast.LENGTH_SHORT).show()
                 fetchAndShow(clipText)
             } else {
-                logDebug("Copy detected but clipboard is empty")
+                logDebug("Copy or selection detected but clipboard is empty")
                 Toast.makeText(this, "Clipboard is empty", Toast.LENGTH_SHORT).show()
             }
         }
