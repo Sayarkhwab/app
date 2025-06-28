@@ -3,6 +3,7 @@ package com.akash.clipboarddict
 import android.accessibilityservice.AccessibilityService
 import android.content.ClipboardManager
 import android.content.Context
+import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -12,19 +13,20 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.File
-import java.io.FileOutputStream
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 class ClipAccessibilityService : AccessibilityService() {
 
     private lateinit var clipboard: ClipboardManager
-    private val TAG = "ClipAccessibilityService"
     private var lastProcessedText = ""
     private val appPackageName = "com.akash.clipboarddict"
+    private val job = SupervisorJob()
+    private val scope = CoroutineScope(Dispatchers.IO + job)
 
     private val clipChangedListener = ClipboardManager.OnPrimaryClipChangedListener {
         handleClipboardChange()
@@ -38,8 +40,7 @@ class ClipAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // Optional: Add additional event handling if needed
-        // For example, detect text selections for better context
+        // Optional: Can be used for additional event tracking
         when (event?.eventType) {
             AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED -> {
                 logDebug("Text selection detected in ${event.packageName}")
@@ -53,6 +54,7 @@ class ClipAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         clipboard.removePrimaryClipChangedListener(clipChangedListener)
+        job.cancel()
         super.onDestroy()
     }
 
@@ -72,11 +74,16 @@ class ClipAccessibilityService : AccessibilityService() {
     }
 
     private fun isAppInForeground(targetPackage: String): Boolean {
-        return rootInActiveWindow?.packageName == targetPackage
+        return try {
+            rootInActiveWindow?.packageName == targetPackage
+        } catch (e: SecurityException) {
+            logDebug("Security exception: ${e.message}")
+            false
+        }
     }
 
     private fun fetchAndShow(word: String) {
-        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+        scope.launch {
             try {
                 val response = callApi(word)
                 if (!response.isNullOrBlank()) {
@@ -117,13 +124,15 @@ class ClipAccessibilityService : AccessibilityService() {
                 outputStream.write(json.toString().toByteArray())
             }
 
-            if (conn.responseCode == 200) {
-                return BufferedReader(InputStreamReader(conn.inputStream)).use {
-                    val response = it.readText()
+            return if (conn.responseCode == 200) {
+                BufferedReader(InputStreamReader(conn.inputStream)).use { reader ->
+                    val response = reader.readText()
                     JSONObject(response).getJSONObject("data").getString("text")
                 }
+            } else {
+                logDebug("API failed with code: ${conn.responseCode}")
+                null
             }
-            return null
         } catch (e: Exception) {
             logDebug("API call failed: ${e.message}")
             return null
@@ -138,7 +147,7 @@ class ClipAccessibilityService : AccessibilityService() {
         try {
             File(filesDir, "debug_log.txt").appendText(logMessage)
         } catch (e: Exception) {
-            // Ignore logging errors
+            Log.e("ClipDebug", "Log write failed: ${e.message}")
         }
     }
 }
