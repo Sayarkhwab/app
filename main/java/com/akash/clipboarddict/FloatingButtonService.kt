@@ -19,7 +19,6 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +32,7 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
 
 class FloatingButtonService : Service() {
 
@@ -46,6 +46,14 @@ class FloatingButtonService : Service() {
     private var initialTouchY = 0f
     private val CHANNEL_ID = "floating_button_channel"
     private val NOTIFICATION_ID = 102
+    private val TAG = "FloatingButtonService"
+    
+    // Touch handling constants
+    private val MAX_CLICK_DURATION = 200 // milliseconds
+    private val MAX_CLICK_DISTANCE = 10 // pixels
+    private var pressStartTime = 0L
+    private var pressStartX = 0f
+    private var pressStartY = 0f
 
     override fun onCreate() {
         super.onCreate()
@@ -82,49 +90,64 @@ class FloatingButtonService : Service() {
         floatingButtonView.setOnTouchListener { view, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
+                    pressStartTime = System.currentTimeMillis()
+                    pressStartX = event.rawX
+                    pressStartY = event.rawY
                     initialX = params.x
                     initialY = params.y
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
                     
-                    // Show close area
                     closeAreaView.visibility = View.VISIBLE
-                    return@setOnTouchListener true
+                    true
                 }
                 
                 MotionEvent.ACTION_MOVE -> {
-                    params.x = initialX + (event.rawX - initialTouchX).toInt()
-                    params.y = initialY + (event.rawY - initialTouchY).toInt()
-                    windowManager.updateViewLayout(floatingButtonView, params)
+                    val duration = System.currentTimeMillis() - pressStartTime
+                    val distanceX = abs(event.rawX - pressStartX)
+                    val distanceY = abs(event.rawY - pressStartY)
                     
-                    // Show/hide close area based on position
-                    if (params.y > windowManager.defaultDisplay.height * 0.7) {
-                        closeAreaView.findViewById<ImageView>(R.id.close_icon)
-                            .setImageResource(R.drawable.ic_close_active)
-                    } else {
-                        closeAreaView.findViewById<ImageView>(R.id.close_icon)
-                            .setImageResource(R.drawable.ic_close_normal)
+                    // Only start dragging after 200ms or significant movement
+                    if (duration > 200 || distanceX > 20 || distanceY > 20) {
+                        params.x = initialX + (event.rawX - initialTouchX).toInt()
+                        params.y = initialY + (event.rawY - initialTouchY).toInt()
+                        windowManager.updateViewLayout(floatingButtonView, params)
+                        
+                        // Show/hide close area based on position
+                        val metrics = resources.displayMetrics
+                        if (params.y > metrics.heightPixels * 0.7) {
+                            closeAreaView.findViewById<ImageView>(R.id.close_icon)
+                                .setImageResource(R.drawable.ic_close_active)
+                        } else {
+                            closeAreaView.findViewById<ImageView>(R.id.close_icon)
+                                .setImageResource(R.drawable.ic_close_normal)
+                        }
                     }
-                    
-                    return@setOnTouchListener true
+                    true
                 }
                 
                 MotionEvent.ACTION_UP -> {
-                    // Check if button is in close area
-                    if (params.y > windowManager.defaultDisplay.height * 0.7) {
+                    val duration = System.currentTimeMillis() - pressStartTime
+                    val distanceX = abs(event.rawX - pressStartX)
+                    val distanceY = abs(event.rawY - pressStartY)
+                    
+                    // Handle as click if short duration and minimal movement
+                    if (duration < MAX_CLICK_DURATION && 
+                        distanceX < MAX_CLICK_DISTANCE && 
+                        distanceY < MAX_CLICK_DISTANCE) {
+                        getClipboardTextAndShowMeaning()
+                    } 
+                    // Handle as close if in bottom area
+                    else if (params.y > resources.displayMetrics.heightPixels * 0.7) {
                         stopSelf()
                     }
                     
-                    // Hide close area
                     closeAreaView.visibility = View.GONE
-                    return@setOnTouchListener true
+                    true
                 }
+                
+                else -> false
             }
-            false
-        }
-        
-        floatingButtonView.setOnClickListener {
-            getClipboardTextAndShowMeaning()
         }
     }
 
@@ -227,38 +250,52 @@ class FloatingButtonService : Service() {
     }
 
     private suspend fun getMeaningFromAPI(word: String): String? {
-        val prompt = """
-            【Role Setting】
-            You are a refined and intelligent **English-to-Hindi Dictionary**. 
-            For every word, phrase, or sentence provided, return a precise, 
-            polished definition in Hindi. Your tone must be scholarly yet 
-            accessible and briefed. 
-            【User's Provided Prompt】
-            \"$word\"
-        """.trimIndent()
+        try {
+            val prompt = """
+                【Role Setting】
+                You are a refined and intelligent **English-to-Hindi Dictionary**. 
+                For every word, phrase, or sentence provided, return a precise, 
+                polished definition in Hindi. Your tone must be scholarly yet 
+                accessible and briefed. 
+                【User's Provided Prompt】
+                \"$word\"
+            """.trimIndent()
 
-        val json = JSONObject().apply {
-            put("prompt", prompt)
-            put("stream", false)
-            put("identity_id", "897f785c-ef8f-4c2c-8d07-c53cf9d5cfa9")
-        }
-
-        val url = URL("https://supawork.ai/supawork/headshot/api/media/gpt/chat")
-        val conn = url.openConnection() as HttpURLConnection
-        conn.requestMethod = "POST"
-        conn.doOutput = true
-        conn.setRequestProperty("Content-Type", "application/json")
-        conn.connectTimeout = 10000
-        conn.readTimeout = 10000
-        conn.outputStream.write(json.toString().toByteArray())
-
-        return if (conn.responseCode == 200) {
-            conn.inputStream.bufferedReader().use {
-                val response = it.readText()
-                JSONObject(response).getJSONObject("data").getString("text")
+            val json = JSONObject().apply {
+                put("prompt", prompt)
+                put("stream", false)
+                put("identity_id", "897f785c-ef8f-4c2c-8d07-c53cf9d5cfa9")
             }
-        } else {
-            null
+
+            val url = URL("https://supawork.ai/supawork/headshot/api/media/gpt/chat")
+            val conn = url.openConnection() as HttpURLConnection
+            conn.apply {
+                requestMethod = "POST"
+                doOutput = true
+                setRequestProperty("Content-Type", "application/json")
+                connectTimeout = 8000
+                readTimeout = 8000
+            }
+            
+            // Write JSON payload
+            conn.outputStream.use { os ->
+                os.write(json.toString().toByteArray())
+            }
+
+            return if (conn.responseCode == 200) {
+                conn.inputStream.bufferedReader().use { reader ->
+                    val response = reader.readText()
+                    JSONObject(response).getJSONObject("data").getString("text")
+                }
+            } else {
+                // Read error stream for debugging
+                val error = conn.errorStream?.bufferedReader()?.readText() ?: "No error details"
+                Log.e(TAG, "API error ${conn.responseCode}: $error")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "API call failed", e)
+            return null
         }
     }
 
@@ -275,8 +312,9 @@ class FloatingButtonService : Service() {
             FileOutputStream(file, true).use {
                 it.write(entry.toByteArray())
             }
+            Log.d(TAG, "Saved to dictionary: $word")
         } catch (e: Exception) {
-            Log.e("Dictionary", "Save failed: ${e.message}")
+            Log.e(TAG, "Save failed: ${e.message}")
         }
     }
 
