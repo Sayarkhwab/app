@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<accessibility-service
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeViewClicked"
-    android:accessibilityFlags="flagDefault"
-    android:accessibilityFeedbackType="feedbackGeneric"
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/accessibility_service_description"
+    android:accessibilityEventTypes="typeViewTextSelectionChanged|typeWindowContentChanged"
+    android:accessibilityFlags="flagRequestRetrieveInteractiveWindows"
+    android:canRetrieveWindowContent="true"
     android:notificationTimeout="100"
-    android:canRetrieveWindowContent="false"
-    android:description="@string/service_description" />
+    android:settingsActivity="com.akash.clipboarddict.MainActivity"
+    android:canRequestFilterKeyEvents="true"/>
