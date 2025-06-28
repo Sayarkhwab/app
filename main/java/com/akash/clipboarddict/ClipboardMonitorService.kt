@@ -75,8 +75,8 @@ class ClipboardMonitorService : Service() {
         try {
             removeFloatingView()
             
-            val windowManager = getSystemService(WindowManager::class.java)
-            val inflater = getSystemService(LayoutInflater::class.java)
+            val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            val inflater = LayoutInflater.from(this)
             
             val view = inflater.inflate(R.layout.floating_prompt, null)
             view.findViewById<TextView>(R.id.promptText).text = message
