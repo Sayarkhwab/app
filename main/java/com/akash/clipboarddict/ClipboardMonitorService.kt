@@ -19,6 +19,10 @@ import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+// Add these imports at the top
+import android.view.View
+import android.view.LayoutInflater
+import android.widget.TextView
 
 class ClipboardMonitorService : Service() {
 
