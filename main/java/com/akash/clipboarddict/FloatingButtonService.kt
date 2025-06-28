@@ -19,6 +19,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -283,5 +284,39 @@ class FloatingButtonService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("ClipDict Active")
             .setContentText("Floating button is enabled")
-            .setSmallIcon(R.drawable.ic_notification)
-            .setPriority(Notificati
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .build()
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Floating Button Service",
+                NotificationManager.IMPORTANCE_MIN
+            ).apply {
+                description = "Background service for floating dictionary button"
+            }
+            
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(channel)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            windowManager.removeView(floatingButtonView)
+            windowManager.removeView(closeAreaView)
+            if (::meaningPopupView.isInitialized) {
+                windowManager.removeView(meaningPopupView)
+            }
+        } catch (e: Exception) {
+            // Views not attached
+        }
+        Toast.makeText(this, "Floating button disabled", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+}
