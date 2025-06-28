@@ -28,9 +28,8 @@
         </activity>
 
         <service
-            android:name=".ClipboardMonitorService"
+            android:name=".ClipboardService"
             android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
+            android:exported="false" />
     </application>
 </manifest>
