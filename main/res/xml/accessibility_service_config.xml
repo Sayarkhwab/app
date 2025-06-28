@@ -2,7 +2,7 @@
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/accessibility_service_description"
     android:accessibilityEventTypes="typeViewTextSelectionChanged"
-    android:accessibilityFlags="flagRequestRetrieveInteractiveWindows"
+    android:accessibilityFlags="flagRetrieveInteractiveWindows"
     android:canRetrieveWindowContent="true"
     android:notificationTimeout="100"
     android:settingsActivity="com.akash.clipboarddict.MainActivity"
