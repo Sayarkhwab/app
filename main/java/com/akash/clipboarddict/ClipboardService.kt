@@ -1,7 +1,6 @@
 package com.akash.clipboarddict
 
 import android.app.Notification
-import android.os.Handler
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
@@ -14,124 +13,112 @@ import android.os.IBinder
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
-import android.view.View
 import android.view.WindowManager
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-class ClipboardService : Service() {
+class ClipboardMonitorService : Service() {
 
     private lateinit var clipboard: ClipboardManager
     private var lastClipText = ""
-    private val CHANNEL_ID = "clipboard_service_channel"
-    private val NOTIFICATION_ID = 1
+    private val CHANNEL_ID = "clipboard_monitor"
+    private val NOTIFICATION_ID = 101
     private var floatingView: View? = null
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification())
-        clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         
-        // Start with current clipboard content
-        checkClipboard()
+        clipboard = getSystemService(ClipboardManager::class.java)
+        clipboard.addPrimaryClipChangedListener(::handleClipboardChange)
         
-        // Set up clipboard listener
-        clipboard.addPrimaryClipChangedListener {
-            log("Clipboard changed detected")
-            checkClipboard()
-        }
+        Log.d("ClipService", "Service started and monitoring clipboard")
     }
 
-    private fun checkClipboard() {
+    private fun handleClipboardChange() {
         try {
-            val clip = clipboard.primaryClip
-            if (clip != null && clip.itemCount > 0) {
-                val item = clip.getItemAt(0)
-                val text = item.text.toString().trim()
-                
-                if (text.isNotEmpty() && text != lastClipText) {
-                    log("New clipboard text: $text")
-                    lastClipText = text
-                    processText(text)
-                }
+            val clip = clipboard.primaryClip ?: return
+            if (clip.itemCount == 0) return
+            
+            val item = clip.getItemAt(0)
+            val text = item.text.toString().trim()
+            
+            if (text.isNotEmpty() && text != lastClipText) {
+                lastClipText = text
+                processText(text)
             }
         } catch (e: Exception) {
-            log("Clipboard error: ${e.message}")
+            Log.e("ClipService", "Error: ${e.message}")
         }
     }
 
     private fun processText(text: String) {
-        // In a real app, you would call your API here
         // For now, just show the text in a floating window
-        showFloatingPrompt("Detected: $text")
+        showFloatingPrompt(text)
+        
+        // In your actual implementation, call your API here:
+        // CoroutineScope(Dispatchers.IO).launch {
+        //     val meaning = getMeaningFromAPI(text)
+        //     showFloatingPrompt(meaning)
+        // }
     }
 
     private fun showFloatingPrompt(message: String) {
-        runOnUiThread {
-            try {
-                // Remove existing view if any
-                removeFloatingView()
-                
-                val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-                val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-                
-                // Create floating view
-                floatingView = inflater.inflate(R.layout.floating_prompt, null)
-                floatingView?.findViewById<TextView>(R.id.promptText)?.text = message
-                
-                // Set layout parameters
-                val params = WindowManager.LayoutParams().apply {
-                    width = WindowManager.LayoutParams.WRAP_CONTENT
-                    height = WindowManager.LayoutParams.WRAP_CONTENT
-                    
-                    type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-                    } else {
-                        WindowManager.LayoutParams.TYPE_PHONE
-                    }
-                    
-                    flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                    gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+        try {
+            removeFloatingView()
+            
+            val windowManager = getSystemService(WindowManager::class.java)
+            val inflater = getSystemService(LayoutInflater::class.java)
+            
+            val view = inflater.inflate(R.layout.floating_prompt, null)
+            view.findViewById<TextView>(R.id.promptText).text = message
+            
+            val params = WindowManager.LayoutParams().apply {
+                width = WindowManager.LayoutParams.WRAP_CONTENT
+                height = WindowManager.LayoutParams.WRAP_CONTENT
+                type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                } else {
+                    WindowManager.LayoutParams.TYPE_PHONE
                 }
-                
-                // Add view to window
-                floatingView?.let { windowManager.addView(it, params) }
-                
-                // Set close button action
-                floatingView?.findViewById<View>(R.id.closeButton)?.setOnClickListener {
-                    removeFloatingView()
-                }
-                
-                log("Floating window shown")
-            } catch (e: Exception) {
-                log("Floating window error: ${e.message}")
+                flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                gravity = Gravity.TOP or Gravity.START
+                x = 100
+                y = 100
             }
+            
+            windowManager.addView(view, params)
+            floatingView = view
+            
+            // Auto-remove after 5 seconds
+            view.postDelayed(::removeFloatingView, 5000)
+        } catch (e: Exception) {
+            Log.e("ClipService", "Floating window error: ${e.message}")
         }
     }
     
     private fun removeFloatingView() {
         floatingView?.let {
             try {
-                val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                val windowManager = getSystemService(WindowManager::class.java)
                 windowManager.removeView(it)
-                floatingView = null
-                log("Floating window removed")
             } catch (e: Exception) {
-                log("Error removing floating view: ${e.message}")
+                // View not attached
             }
+            floatingView = null
         }
     }
 
     private fun buildNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Clipboard Dictionary")
-            .setContentText("Monitoring clipboard")
+            .setContentText("Monitoring clipboard for words")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
             .build()
     }
 
@@ -139,34 +126,13 @@ class ClipboardService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Clipboard Service",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Background clipboard monitoring"
-            }
+                "Clipboard Monitor",
+                NotificationManager.IMPORTANCE_MIN
+            ).apply { description = "Background clipboard monitoring" }
             
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
-    }
-    
-    private fun runOnUiThread(action: () -> Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            mainExecutor.execute(action)
-        } else {
-            // Fallback for older versions
-            Handler(Looper.getMainLooper()).post(action)
-        }
-    }
-    
-    private fun log(message: String) {
-        // Send broadcast to update UI in MainActivity
-        val intent = Intent("CLIPBOARD_LOG")
-        intent.putExtra("message", message)
-        sendBroadcast(intent)
-        
-        // Also log to system
-        Log.d("ClipboardService", message)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -175,7 +141,6 @@ class ClipboardService : Service() {
 
     override fun onDestroy() {
         removeFloatingView()
-        log("Service destroyed")
         super.onDestroy()
     }
 
