@@ -14,7 +14,8 @@
         android:label="ClipboardDict"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+        tools:ignore="GoogleAppIndexingWarning">
 
         <activity
             android:name=".MainActivity"
@@ -32,7 +33,10 @@
             android:enabled="true"
             android:exported="false" />
 
-        <receiver android:name=".BootReceiver">
+        <!-- Add android:exported for Android 12+ -->
+        <receiver 
+            android:name=".BootReceiver"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
