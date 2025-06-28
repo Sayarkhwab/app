@@ -2,13 +2,13 @@ package com.akash.clipboarddict
 
 import android.content.Context
 import android.view.LayoutInflater
-import android.view.View
 import android.widget.TextView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 
 class FloatingPromptView(context: Context) {
     private val dialog = BottomSheetDialog(context)
-    private val view: View = LayoutInflater.from(context).inflate(R.layout.floating_prompt, null)
+    private val inflater = LayoutInflater.from(context)
+    private val view = inflater.inflate(R.layout.floating_prompt, null)
     
     init {
         dialog.setContentView(view)
