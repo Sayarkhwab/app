@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
@@ -16,21 +17,16 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class ClipboardMonitorService : Service() {
+class ClipboardService : Service() {
 
     private lateinit var clipboard: ClipboardManager
     private var lastClipText = ""
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private val CHANNEL_ID = "clipboard_monitor_channel"
-    private val NOTIFICATION_ID = 101
+    private val CHANNEL_ID = "clipboard_service_channel"
+    private val NOTIFICATION_ID = 1
     private var floatingView: View? = null
 
     override fun onCreate() {
@@ -39,94 +35,100 @@ class ClipboardMonitorService : Service() {
         startForeground(NOTIFICATION_ID, buildNotification())
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         
+        // Start with current clipboard content
+        checkClipboard()
+        
+        // Set up clipboard listener
         clipboard.addPrimaryClipChangedListener {
-            try {
-                val clipText = clipboard.primaryClip?.getItemAt(0)?.text?.toString()?.trim()
-                logToFile("Clipboard changed: ${clipText ?: "null"}")
+            log("Clipboard changed detected")
+            checkClipboard()
+        }
+    }
+
+    private fun checkClipboard() {
+        try {
+            val clip = clipboard.primaryClip
+            if (clip != null && clip.itemCount > 0) {
+                val item = clip.getItemAt(0)
+                val text = item.text.toString().trim()
                 
-                if (!clipText.isNullOrBlank() && clipText != lastClipText) {
-                    lastClipText = clipText
-                    logToFile("Processing copied text: $clipText")
-                    processCopiedText(clipText)
+                if (text.isNotEmpty() && text != lastClipText) {
+                    log("New clipboard text: $text")
+                    lastClipText = text
+                    processText(text)
                 }
-            } catch (e: Exception) {
-                logToFile("Clipboard error: ${e.message}")
             }
+        } catch (e: Exception) {
+            log("Clipboard error: ${e.message}")
         }
-        
-        logToFile("Service started")
     }
 
-    private fun processCopiedText(text: String) {
-        scope.launch {
+    private fun processText(text: String) {
+        // In a real app, you would call your API here
+        // For now, just show the text in a floating window
+        showFloatingPrompt("Detected: $text")
+    }
+
+    private fun showFloatingPrompt(message: String) {
+        runOnUiThread {
             try {
-                logToFile("Fetching meaning for: $text")
-                val meaning = getMeaningFromAPI(text)
+                // Remove existing view if any
+                removeFloatingView()
                 
-                if (!meaning.isNullOrBlank()) {
-                    logToFile("Meaning received: $meaning")
-                    showFloatingPrompt(meaning)
-                } else {
-                    logToFile("Empty meaning received")
+                val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
+                
+                // Create floating view
+                floatingView = inflater.inflate(R.layout.floating_prompt, null)
+                floatingView?.findViewById<TextView>(R.id.promptText)?.text = message
+                
+                // Set layout parameters
+                val params = WindowManager.LayoutParams().apply {
+                    width = WindowManager.LayoutParams.WRAP_CONTENT
+                    height = WindowManager.LayoutParams.WRAP_CONTENT
+                    
+                    type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                    } else {
+                        WindowManager.LayoutParams.TYPE_PHONE
+                    }
+                    
+                    flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                    gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
                 }
+                
+                // Add view to window
+                floatingView?.let { windowManager.addView(it, params) }
+                
+                // Set close button action
+                floatingView?.findViewById<View>(R.id.closeButton)?.setOnClickListener {
+                    removeFloatingView()
+                }
+                
+                log("Floating window shown")
             } catch (e: Exception) {
-                logToFile("API error: ${e.message}")
+                log("Floating window error: ${e.message}")
             }
-        }
-    }
-
-    private suspend fun getMeaningFromAPI(word: String): String? {
-        // This is a placeholder - implement your actual API call here
-        return "हिंदी अर्थ: $word (सफलता)"
-    }
-
-    private fun showFloatingPrompt(meaning: String) {
-        // Remove any existing floating view
-        removeFloatingView()
-        
-        val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        floatingView = inflater.inflate(R.layout.floating_prompt, null)
-        
-        // Set the meaning text
-        floatingView?.findViewById<TextView>(R.id.promptText)?.text = meaning
-        
-        // Set up layout parameters
-        val params = WindowManager.LayoutParams().apply {
-            type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            } else {
-                WindowManager.LayoutParams.TYPE_PHONE
-            }
-            flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-            width = WindowManager.LayoutParams.WRAP_CONTENT
-            height = WindowManager.LayoutParams.WRAP_CONTENT
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-        }
-        
-        // Add the view to window
-        floatingView?.let {
-            windowManager.addView(it, params)
-        }
-        
-        // Set close button action
-        floatingView?.findViewById<View>(R.id.closeButton)?.setOnClickListener {
-            removeFloatingView()
         }
     }
     
     private fun removeFloatingView() {
         floatingView?.let {
-            val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            windowManager.removeView(it)
-            floatingView = null
+            try {
+                val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                windowManager.removeView(it)
+                floatingView = null
+                log("Floating window removed")
+            } catch (e: Exception) {
+                log("Error removing floating view: ${e.message}")
+            }
         }
     }
 
     private fun buildNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Clipboard Dictionary Active")
-            .setContentText("Monitoring for copied text")
+            .setContentTitle("Clipboard Dictionary")
+            .setContentText("Monitoring clipboard")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
@@ -136,26 +138,34 @@ class ClipboardMonitorService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Clipboard Monitor",
+                "Clipboard Service",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Monitoring clipboard for dictionary lookups"
+                description = "Background clipboard monitoring"
             }
+            
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
     }
-
-    private fun logToFile(message: String) {
-        val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-        val logMessage = "[$timestamp] $message\n"
-        
-        try {
-            val file = filesDir.resolve("clip_log.txt")
-            file.appendText(logMessage)
-        } catch (e: Exception) {
-            Log.e("ClipLog", "Failed to write log: ${e.message}")
+    
+    private fun runOnUiThread(action: () -> Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            mainExecutor.execute(action)
+        } else {
+            // Fallback for older versions
+            Handler(mainLooper).post(action)
         }
+    }
+    
+    private fun log(message: String) {
+        // Send broadcast to update UI in MainActivity
+        val intent = Intent("CLIPBOARD_LOG")
+        intent.putExtra("message", message)
+        sendBroadcast(intent)
+        
+        // Also log to system
+        Log.d("ClipboardService", message)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -164,7 +174,7 @@ class ClipboardMonitorService : Service() {
 
     override fun onDestroy() {
         removeFloatingView()
-        logToFile("Service stopped")
+        log("Service destroyed")
         super.onDestroy()
     }
 
