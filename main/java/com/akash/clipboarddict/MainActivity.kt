@@ -1,5 +1,7 @@
 package com.akash.clipboarddict
 
+// Add at the top of MainActivity.kt
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
