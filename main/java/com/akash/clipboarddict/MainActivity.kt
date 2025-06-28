@@ -1,8 +1,6 @@
 package com.akash.clipboarddict
 
-// Add at the top of MainActivity.kt
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
@@ -10,8 +8,6 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
@@ -28,12 +24,10 @@ class MainActivity : AppCompatActivity() {
         updateAccessibilityStatus()
         loadDebugLog()
 
-        // Accessibility permission button
         findViewById<Button>(R.id.enable_accessibility_button).setOnClickListener {
             openAccessibilitySettings()
         }
 
-        // Clear logs button
         findViewById<Button>(R.id.clear_logs_button).setOnClickListener {
             clearDebugLog()
         }
@@ -57,27 +51,26 @@ class MainActivity : AppCompatActivity() {
         val enabledServices = Settings.Secure.getString(
             contentResolver,
             Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        )
-        return enabledServices?.contains(serviceName.flattenToString()) == true
+        ) ?: return false
+        
+        return enabledServices.contains(serviceName.flattenToString())
     }
 
     private fun openAccessibilitySettings() {
         try {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         } catch (e: Exception) {
-            // Fallback if accessibility settings can't be opened
-            val intent = Intent(Settings.ACTION_SETTINGS)
-            startActivity(intent)
+            startActivity(Intent(Settings.ACTION_SETTINGS))
         }
     }
 
     private fun loadDebugLog() {
         try {
             val logFile = File(filesDir, "debug_log.txt")
-            if (logFile.exists()) {
-                debugTextView.text = logFile.readText()
+            debugTextView.text = if (logFile.exists()) {
+                logFile.readText()
             } else {
-                debugTextView.text = "No debug logs available"
+                "No debug logs available"
             }
         } catch (e: Exception) {
             debugTextView.text = "Error loading logs: ${e.message}"
