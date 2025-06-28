@@ -3,44 +3,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:gravity="center"
+    android:padding="24dp">
 
     <Button
         android:id="@+id/start_btn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Start Monitoring"
-        android:layout_marginBottom="8dp"/>
-
-    <Button
-        android:id="@+id/stop_btn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Stop Monitoring"
-        android:layout_marginBottom="16dp"/>
-
-    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Service Logs:"
-        android:textStyle="bold"
-        android:layout_marginBottom="8dp"/>
-
-    <!-- Added id to ScrollView -->
-    <ScrollView
-        android:id="@+id/scroll_view"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true">
-
-        <TextView
-            android:id="@+id/log_view"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="14sp"
-            android:fontFamily="monospace"
-            android:background="#f0f0f0"
-            android:padding="8dp"/>
-    </ScrollView>
+        android:text="START READING"
+        android:textSize="18sp"
+        android:padding="16dp"/>
 </LinearLayout>
