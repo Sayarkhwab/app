@@ -3,47 +3,26 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="24dp"
+    android:gravity="center">
 
     <TextView
-        android:id="@+id/status_text"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Accessibility Service: CHECKING..."
-        android:textSize="18sp"
-        android:paddingBottom="16dp"/>
+        android:text="Clipboard Dictionary"
+        android:textSize="24sp"
+        android:layout_marginBottom="24dp"/>
 
     <Button
-        android:id="@+id/enable_accessibility_button"
+        android:id="@+id/start_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Enable Accessibility Service"
+        android:text="Start Monitoring"
         android:layout_marginBottom="16dp"/>
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Debug Logs"
-        android:textSize="16sp"
-        android:paddingBottom="8dp"/>
-
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-
-        <TextView
-            android:id="@+id/debug_text_view"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="12sp"
-            android:fontFamily="monospace"/>
-    </ScrollView>
-
     <Button
-        android:id="@+id/clear_logs_button"
+        android:id="@+id/stop_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Clear Logs"
-        android:layout_marginTop="8dp"/>
+        android:text="Stop Monitoring"/>
 </LinearLayout>
