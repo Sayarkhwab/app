@@ -155,7 +155,7 @@ class ClipboardService : Service() {
             mainExecutor.execute(action)
         } else {
             // Fallback for older versions
-            Handler(mainLooper).post(action)
+            Handler(Looper.getMainLooper()).post(action)
         }
     }
     
