@@ -3,7 +3,7 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@android:color/white"
+    android:background="#CCFFFFFF"
     android:padding="16dp"
     android:elevation="8dp">
 
@@ -11,16 +11,7 @@
         android:id="@+id/promptText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="16sp"
-        android:textColor="@android:color/black"
-        android:maxWidth="300dp"
-        android:padding="8dp"/>
-
-    <Button
-        android:id="@+id/closeButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Close"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="8dp"/>
+        android:textSize="18sp"
+        android:textColor="#FF000000"
+        android:maxWidth="300dp"/>
 </LinearLayout>
