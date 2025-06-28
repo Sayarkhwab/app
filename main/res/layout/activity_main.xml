@@ -6,6 +6,13 @@
     android:gravity="center"
     android:padding="24dp">
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Clipboard Dictionary"
+        android:textSize="20sp"
+        android:layout_marginBottom="24dp"/>
+    
     <Button
         android:id="@+id/start_btn"
         android:layout_width="wrap_content"
@@ -13,4 +20,11 @@
         android:text="START READING"
         android:textSize="18sp"
         android:padding="16dp"/>
+        
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Logs saved to clip_log.txt"
+        android:layout_marginTop="24dp"
+        android:textColor="#666"/>
 </LinearLayout>
