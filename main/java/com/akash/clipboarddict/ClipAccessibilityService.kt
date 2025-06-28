@@ -3,8 +3,6 @@ package com.akash.clipboarddict
 import android.accessibilityservice.AccessibilityService
 import android.content.ClipboardManager
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import android.view.accessibility.AccessibilityEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,32 +23,56 @@ class ClipAccessibilityService : AccessibilityService() {
 
     private lateinit var clipboard: ClipboardManager
     private val TAG = "ClipAccessibilityService"
-    private val handler = Handler(Looper.getMainLooper())
+    private var lastProcessedText = ""
+    private val appPackageName = "com.akash.clipboarddict"
+
+    private val clipChangedListener = ClipboardManager.OnPrimaryClipChangedListener {
+        handleClipboardChange()
+    }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.addPrimaryClipChangedListener(clipChangedListener)
         logDebug("Accessibility service connected")
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event?.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
-            logDebug("Event detected: type=${event.eventType}, package=${event.packageName}")
-            // Delay clipboard check to ensure it's populated
-            handler.postDelayed({
-                val clipText = clipboard.primaryClip?.getItemAt(0)?.text?.toString()?.trim()
-                if (!clipText.isNullOrBlank()) {
-                    logDebug("Copy detected: $clipText")
-                    fetchAndShow(clipText)
-                } else {
-                    logDebug("Clipboard is empty after copy event")
-                }
-            }, 500) // 500ms delay
+        // Optional: Add additional event handling if needed
+        // For example, detect text selections for better context
+        when (event?.eventType) {
+            AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED -> {
+                logDebug("Text selection detected in ${event.packageName}")
+            }
         }
     }
 
     override fun onInterrupt() {
         logDebug("Accessibility service interrupted")
+    }
+
+    override fun onDestroy() {
+        clipboard.removePrimaryClipChangedListener(clipChangedListener)
+        super.onDestroy()
+    }
+
+    private fun handleClipboardChange() {
+        // Skip if our own app is in foreground
+        if (isAppInForeground(appPackageName)) {
+            logDebug("Ignoring clipboard change from our own app")
+            return
+        }
+
+        val clipText = clipboard.primaryClip?.getItemAt(0)?.text?.toString()?.trim()
+        if (!clipText.isNullOrBlank() && clipText != lastProcessedText) {
+            lastProcessedText = clipText
+            logDebug("New clipboard text: $clipText")
+            fetchAndShow(clipText)
+        }
+    }
+
+    private fun isAppInForeground(targetPackage: String): Boolean {
+        return rootInActiveWindow?.packageName == targetPackage
     }
 
     private fun fetchAndShow(word: String) {
@@ -59,14 +81,11 @@ class ClipAccessibilityService : AccessibilityService() {
                 val response = callApi(word)
                 if (!response.isNullOrBlank()) {
                     withContext(Dispatchers.Main) {
-                        logDebug("Showing prompt for: $response")
                         FloatingPromptView(this@ClipAccessibilityService).show(response)
                     }
-                } else {
-                    logDebug("Empty or null API response for word: $word")
                 }
             } catch (e: Exception) {
-                logDebug("API error for word '$word': ${e.message}")
+                logDebug("API error: ${e.message}")
             }
         }
     }
@@ -76,10 +95,8 @@ class ClipAccessibilityService : AccessibilityService() {
         try {
             val prompt = """
                 【Role Setting】
-                You are a refined and intelligent **English-to-Hindi Dictionary**. For every word, phrase, or sentence provided, return a precise, polished definition in Hindi. Your tone must be scholarly yet accessible. 
-                Honor the origin and field of the word — whether it belongs to **biology**, **philosophy**, **technology**, or any other domain, reflect that in your definition very short and brief. 
-
-                【User's Provided Prompt】
+                You are a refined English-to-Hindi Dictionary. Return precise definitions in Hindi.
+                【User's Prompt】
                 "$word"
             """.trimIndent()
 
@@ -91,26 +108,22 @@ class ClipAccessibilityService : AccessibilityService() {
 
             val url = URL("https://supawork.ai/supawork/headshot/api/media/gpt/chat")
             conn = url.openConnection() as HttpURLConnection
-            conn.requestMethod = "POST"
-            conn.doOutput = true
-            conn.setRequestProperty("Content-Type", "application/json")
-            conn.connectTimeout = 10000
-            conn.readTimeout = 10000
-            conn.outputStream.write(json.toString().toByteArray())
-
-            val responseCode = conn.responseCode
-            return if (responseCode == 200) {
-                val reader = BufferedReader(InputStreamReader(conn.inputStream))
-                val response = reader.readText()
-                logDebug("API response: $response")
-                val resJson = JSONObject(response)
-                resJson.getJSONObject("data").getString("text").also {
-                    reader.close()
-                }
-            } else {
-                logDebug("API failed with response code: $responseCode")
-                null
+            conn.apply {
+                requestMethod = "POST"
+                doOutput = true
+                setRequestProperty("Content-Type", "application/json")
+                connectTimeout = 8000
+                readTimeout = 8000
+                outputStream.write(json.toString().toByteArray())
             }
+
+            if (conn.responseCode == 200) {
+                return BufferedReader(InputStreamReader(conn.inputStream)).use {
+                    val response = it.readText()
+                    JSONObject(response).getJSONObject("data").getString("text")
+                }
+            }
+            return null
         } catch (e: Exception) {
             logDebug("API call failed: ${e.message}")
             return null
@@ -123,12 +136,9 @@ class ClipAccessibilityService : AccessibilityService() {
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
         val logMessage = "[$timestamp] $message\n"
         try {
-            val file = File(filesDir, "debug_log.txt")
-            FileOutputStream(file, true).use { fos ->
-                fos.write(logMessage.toByteArray())
-            }
+            File(filesDir, "debug_log.txt").appendText(logMessage)
         } catch (e: Exception) {
-            // Silent failure to avoid user disruption
+            // Ignore logging errors
         }
     }
 }
