@@ -11,7 +11,7 @@
         android:id="@+id/promptText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="18sp"
+        android:textSize="16sp"
         android:textColor="@android:color/black"
         android:maxWidth="300dp"
         android:padding="8dp"/>
@@ -23,5 +23,4 @@
         android:text="Close"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="8dp"/>
-
 </LinearLayout>
