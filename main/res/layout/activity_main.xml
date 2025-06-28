@@ -17,14 +17,14 @@
         android:id="@+id/enable_accessibility_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Enable Accessibility Service"/>
+        android:text="Enable Accessibility Service"
+        android:layout_marginBottom="16dp"/>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Debug Logs"
         android:textSize="16sp"
-        android:paddingTop="24dp"
         android:paddingBottom="8dp"/>
 
     <ScrollView
@@ -37,8 +37,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="12sp"
-            android:fontFamily="monospace"
-            android:background="@android:color/transparent"/>
+            android:fontFamily="monospace"/>
     </ScrollView>
 
     <Button
