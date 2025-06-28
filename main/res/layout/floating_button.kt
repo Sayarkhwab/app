@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/floating_button"
+    android:layout_width="56dp"
+    android:layout_height="56dp"
+    android:src="@drawable/ic_dict"
+    android:background="@drawable/floating_button_bg"
+    android:contentDescription="Dictionary button"/>
