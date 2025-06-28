@@ -40,7 +40,6 @@ class ClipAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // Optional: Can be used for additional event tracking
         when (event?.eventType) {
             AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED -> {
                 logDebug("Text selection detected in ${event.packageName}")
@@ -59,7 +58,6 @@ class ClipAccessibilityService : AccessibilityService() {
     }
 
     private fun handleClipboardChange() {
-        // Skip if our own app is in foreground
         if (isAppInForeground(appPackageName)) {
             logDebug("Ignoring clipboard change from our own app")
             return
