@@ -2,43 +2,36 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Permissions -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
-
+    <!-- Remove unused permissions -->
+    
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="ClipboardDict"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+        tools:ignore="GoogleAppIndexingWarning">
 
         <!-- Main Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="ClipboardDict">
+            android:label="ClipboardDict"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- Clipboard Monitor Service -->
-        <service
-            android:name=".ClipboardService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="dataSync"
-            tools:ignore="ForegroundServicePermission" />
-
         <!-- Accessibility Service -->
         <service
             android:name=".ClipAccessibilityService"
             android:enabled="true"
-            android:exported="false"
+            android:exported="true"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
