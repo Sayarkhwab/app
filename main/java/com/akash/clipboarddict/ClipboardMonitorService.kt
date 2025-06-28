@@ -12,17 +12,11 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import android.view.Gravity
-import android.view.LayoutInflater
-import android.view.WindowManager
-import android.widget.TextView
-import androidx.core.app.NotificationCompat
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-// Add these imports at the top
 import android.view.View
-import android.view.LayoutInflater
-import android.widget.TextView
+import android.view.WindowManager
+import android.widget.TextView  // Import TextView from android.widget
+import androidx.core.app.NotificationCompat
+import android.view.LayoutInflater  // Import LayoutInflater from android.view
 
 class ClipboardMonitorService : Service() {
 
@@ -61,14 +55,7 @@ class ClipboardMonitorService : Service() {
     }
 
     private fun processText(text: String) {
-        // For now, just show the text in a floating window
         showFloatingPrompt(text)
-        
-        // In your actual implementation, call your API here:
-        // CoroutineScope(Dispatchers.IO).launch {
-        //     val meaning = getMeaningFromAPI(text)
-        //     showFloatingPrompt(meaning)
-        // }
     }
 
     private fun showFloatingPrompt(message: String) {
@@ -76,7 +63,7 @@ class ClipboardMonitorService : Service() {
             removeFloatingView()
             
             val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            val inflater = LayoutInflater.from(this)
+            val inflater = LayoutInflater.from(this)  // Now uses unambiguous import
             
             val view = inflater.inflate(R.layout.floating_prompt, null)
             view.findViewById<TextView>(R.id.promptText).text = message
@@ -108,7 +95,7 @@ class ClipboardMonitorService : Service() {
     private fun removeFloatingView() {
         floatingView?.let {
             try {
-                val windowManager = getSystemService(WindowManager::class.java)
+                val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
                 windowManager.removeView(it)
             } catch (e: Exception) {
                 // View not attached
