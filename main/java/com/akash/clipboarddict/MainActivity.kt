@@ -1,88 +1,52 @@
 package com.akash.clipboarddict
 
-import android.content.ComponentName
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import java.io.File
+import androidx.core.app.NotificationManagerCompat
 
 class MainActivity : AppCompatActivity() {
-
-    private lateinit var statusText: TextView
-    private lateinit var debugTextView: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        statusText = findViewById(R.id.status_text)
-        debugTextView = findViewById(R.id.debug_text_view)
-
-        updateAccessibilityStatus()
-        loadDebugLog()
-
-        findViewById<Button>(R.id.enable_accessibility_button).setOnClickListener {
-            openAccessibilitySettings()
-        }
-
-        findViewById<Button>(R.id.clear_logs_button).setOnClickListener {
-            clearDebugLog()
-        }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        updateAccessibilityStatus()
-        loadDebugLog()
-    }
-
-    private fun updateAccessibilityStatus() {
-        val isEnabled = isAccessibilityServiceEnabled()
-        statusText.text = "Accessibility Service: ${if (isEnabled) "ENABLED" else "DISABLED"}"
-        findViewById<Button>(R.id.enable_accessibility_button).text = 
-            if (isEnabled) "Reconfigure Service" else "Enable Service"
-    }
-
-    private fun isAccessibilityServiceEnabled(): Boolean {
-        val serviceName = ComponentName(this, ClipAccessibilityService::class.java)
-        val enabledServices = Settings.Secure.getString(
-            contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
-        
-        return enabledServices.contains(serviceName.flattenToString())
-    }
-
-    private fun openAccessibilitySettings() {
-        try {
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        } catch (e: Exception) {
-            startActivity(Intent(Settings.ACTION_SETTINGS))
-        }
-    }
-
-    private fun loadDebugLog() {
-        try {
-            val logFile = File(filesDir, "debug_log.txt")
-            debugTextView.text = if (logFile.exists()) {
-                logFile.readText()
-            } else {
-                "No debug logs available"
+        // Request notification permission on Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (!NotificationManagerCompat.from(this).areNotificationsEnabled()) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 0)
             }
-        } catch (e: Exception) {
-            debugTextView.text = "Error loading logs: ${e.message}"
+        }
+
+        findViewById<Button>(R.id.start_button).setOnClickListener {
+            startMonitorService()
+        }
+
+        findViewById<Button>(R.id.stop_button).setOnClickListener {
+            stopMonitorService()
         }
     }
 
-    private fun clearDebugLog() {
-        try {
-            File(filesDir, "debug_log.txt").delete()
-            debugTextView.text = "Logs cleared"
-        } catch (e: Exception) {
-            debugTextView.text = "Error clearing logs: ${e.message}"
+    private fun startMonitorService() {
+        val serviceIntent = Intent(this, ClipboardMonitorService::class.java)
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
         }
+        
+        Toast.makeText(this, "Clipboard monitoring started", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun stopMonitorService() {
+        val serviceIntent = Intent(this, ClipboardMonitorService::class.java)
+        stopService(serviceIntent)
+        Toast.makeText(this, "Monitoring stopped", Toast.LENGTH_SHORT).show()
     }
 }
