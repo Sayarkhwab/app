@@ -3,25 +3,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="24dp"
-    android:gravity="center">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Clipboard Dictionary"
-        android:textSize="24sp"
-        android:layout_marginBottom="24dp"/>
+    android:padding="16dp">
 
     <Button
-        android:id="@+id/start_button"
+        android:id="@+id/start_btn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Start Monitoring"
-        android:layout_marginBottom="16dp"/>
+        android:layout_marginBottom="8dp"/>
 
     <Button
-        android:id="@+id/stop_button"
+        android:id="@+id/stop_btn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Stop Monitoring"
@@ -30,7 +22,23 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Debug logs saved to clip_log.txt"
-        android:textSize="14sp"
-        android:textColor="@android:color/darker_gray"/>
+        android:text="Service Logs:"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp"/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <TextView
+            android:id="@+id/log_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:fontFamily="monospace"
+            android:background="#f0f0f0"
+            android:padding="8dp"/>
+    </ScrollView>
 </LinearLayout>
