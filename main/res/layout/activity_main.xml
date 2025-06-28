@@ -7,35 +7,44 @@
 
     <TextView
         android:id="@+id/status_text"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Clipboard Monitoring: OFF"
-        android:textSize="18sp" />
-
-    <Button
-        android:id="@+id/toggle_service_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Start Monitoring" />
-
-    <Button
-        android:id="@+id/copy_test_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Test Clipboard" />
+        android:text="Accessibility Service: CHECKING..."
+        android:textSize="18sp"
+        android:paddingBottom="16dp"/>
 
     <Button
         android:id="@+id/enable_accessibility_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Enable Accessibility Service" />
-
-    <TextView
-        android:id="@+id/debug_text_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Debug Logs:\n"
-        android:textSize="14sp"
-        android:paddingTop="16dp" />
+        android:text="Enable Accessibility Service"/>
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Debug Logs"
+        android:textSize="16sp"
+        android:paddingTop="24dp"
+        android:paddingBottom="8dp"/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/debug_text_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:background="@android:color/transparent"/>
+    </ScrollView>
+
+    <Button
+        android:id="@+id/clear_logs_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Clear Logs"
+        android:layout_marginTop="8dp"/>
 </LinearLayout>
