@@ -1,0 +1,8 @@
+pyrofork
+python-dotenv
+flask
+requests
+aria2p
+regex
+psutil
+TgCrypto-pyrofork
